@@ -56,4 +56,4 @@ Both skills use **historical throughput** (count of completed items per day) to 
 > If I have the following throughput `[5,3,1,3,4,6,5,3,1,3,2,5,0,0,2,0,1,0,2,4,3,4,0,1,0,0,2]`, can you tell me how many stories I will complete if I start today, and finish on the `2025-12-16`, with a certainty of `85%`?
 
 **When:**
-> We have 150 items to complete. Using throughput `[4,2,0,3,5,1,2,4,0,3,2,1,4,3]`, when will we finish at `85%` confidence if we start on `2025-11-03`?
+> We have `150` items to complete. Using throughput `[4,2,0,3,5,1,2,4,0,3,2,1,4,3]`, when will we finish at `85%` confidence if we start on `2025-11-03`?
