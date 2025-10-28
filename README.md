@@ -3,19 +3,19 @@ Forecasting Skills for Claude: Monte Carlo “When” & “How Many” for flow-
 
 ## What this is  
 This repository contains two skills for Claude that enable probabilistic forecasting in a flow-based delivery environment:  
-MC When → Given:
-	•	Start date (defaults to today if not specified)
-	•	Number of items in the backlog
-	•	Throughput distribution (e.g., historical completions per day)
-	•	Confidence level (e.g., 85%)
+**MC When** → Given:
+- Start date (defaults to today if not specified)
+- Number of items in the backlog
+- Throughput distribution (e.g., historical completions per day)
+- Confidence level (e.g., 85%)
 It should return a range of possible completion dates — for example:
-“There’s an 85% chance the backlog will be done on or before March 4.”
+- “There’s an 85% chance the backlog will be done on or before March 4.”
 
-MC How Many → Given:
-	•	Start date (defaults to today if not specified)
-	•	Target end date
-	•	Throughput distribution
-	•	Confidence level
+**MC How Many** → Given:
+- Start date (defaults to today if not specified)
+- Target end date
+- Throughput distribution
+- Confidence level
 It should return a range of how many items you can expect to finish by that date — for example:
 “There’s an 85% chance you’ll complete 42 or more items by March 18.”
 
