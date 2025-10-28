@@ -19,7 +19,7 @@ It should return a range of possible completion dates — for example:
 - Confidence level
 
 It should return a range of how many items you can expect to finish by that date — for example:
-“There’s an 85% chance you’ll complete 42 or more items by March 18.”
+- “There’s an 85% chance you’ll complete 42 or more items by March 18.”
 
 ## Why it matters  
 In a world where teams are working flow-based (rather than strictly sprint-based), it’s helpful to shift from “We will finish X items by Y date” to a more probabilistic mindset:  
