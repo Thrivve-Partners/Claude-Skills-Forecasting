@@ -3,8 +3,8 @@ Forecasting Skills for Claude: Monte Carlo “When” & “How Many” for flow-
 
 ## What this is  
 This repository contains two skills for Claude that enable probabilistic forecasting in a flow-based delivery environment:  
-- **MC When** — estimate *when* a given backlog will complete (given start date, throughput distribution, confidence level)  
-- **MC How Many** — estimate *how many* items can be completed by a given date (using the same inputs)  
+- **MC When** — forecast *when* a given backlog will complete (given start date, throughput distribution, confidence level)  
+- **MC How Many** — forecast *how many* items can be completed by a given date (using the same inputs)  
 
 Both are designed to operate on throughput data (e.g., past completions from a Jira board or equivalent) and to support confidence-based planning rather than rigid commitments.
 
