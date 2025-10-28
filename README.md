@@ -6,16 +6,18 @@ This repository contains two skills for Claude that enable probabilistic forecas
 **MC When** → Given:
 - Start date (defaults to today if not specified)
 - Number of items in the backlog
-- Throughput distribution (e.g., historical completions per day)
+- historical throughput data (i.e., historical completions per day)
 - Confidence level (e.g., 85%)
+
 It should return a range of possible completion dates — for example:
 - “There’s an 85% chance the backlog will be done on or before March 4.”
 
 **MC How Many** → Given:
 - Start date (defaults to today if not specified)
 - Target end date
-- Throughput distribution
+- Historical throughput data
 - Confidence level
+
 It should return a range of how many items you can expect to finish by that date — for example:
 “There’s an 85% chance you’ll complete 42 or more items by March 18.”
 
