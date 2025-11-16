@@ -1,12 +1,28 @@
 # Claude-Skills-Forecasting  
-Forecasting Skills for Claude: Monte Carlo “When” & “How Many” for flow-based delivery  
+Forecasting Skills for Claude: Monte Carlo “When” & “How Many” for flow-based delivery.
 
 ## What this is  
 This repository contains two skills for Claude that enable probabilistic forecasting in a flow-based delivery environment:  
 - **MC When** — forecast *when* a given backlog will complete (given start date, throughput distribution, confidence level)  
 - **MC How Many** — forecast *how many* items can be completed by a given date (using the same inputs)  
 
-Both are designed to operate on throughput data (e.g., past completions from a Jira board or equivalent) and to support confidence-based planning rather than rigid commitments.
+**MC When** → Given:
+- Start date (defaults to today if not specified)
+- Number of items in the backlog (the number you want to complete)
+- historical throughput data (i.e., historical completions per day)
+- Confidence level (e.g., 85%)
+
+It should return a range of possible completion dates — for example:
+- “There’s an 85% chance that X items will be done **on or before** March 4th, 2026.”
+
+**MC How Many** → Given:
+- Start date (defaults to today if not specified)
+- Target end date
+- Historical throughput data
+- Confidence level
+
+It should return a range of how many items you can expect to finish by the target end date — for example:
+- “There’s an 85% chance you’ll complete 42 **or more** items by March 18.”
 
 ## Why it matters  
 In a world where teams are working in a flow-based manner rather than time-boxed iterations, it’s helpful to shift from “We will finish X items by Y date” to a more probabilistic mindset:  
@@ -97,31 +113,34 @@ Your skills should now appear in the Skills section and be ready to use!
 
 ---
 
-## Inputs
+## Inputs & Outputs
 
-Both skills use **historical throughput** (count of completed items per day) to sample future outcomes.
+Both skills use historical throughput (count of completed items per day) to forecast future outcomes.
+Inputs and outputs differ slightly depending on whether you want to forecast “how many” or “when.”
+
+### Common inputs
+- throughput: array of non-negative integers, oldest → newest, e.g. [5,3,1,3,4,6,5,3,1,3,2,5,0,0,2,0,1,0,2,4,3,4,0,1,0,0,2]
+- confidence (percentile): one of 50, 70, 85, 95, 99 (default 85)
+- start_date: ISO YYYY-MM-DD (optional - defaults to today if not specified; timezone: local/Claude’s default)
 
 - `throughput`: array of non-negative integers 
   e.g. `[5,3,1,3,4,6,5,3,1,3,2,5,0,0,2,0,1,0,2,4,3,4,0,1,0,0,2]`
 - `confidence` (percentile): one of 50, 70, 85 (default 85), 95, 99
 - Dates are ISO `YYYY-MM-DD` (timezone: your local system/Claude’s default unless given)
 
-### MC How-Many (target date)
-- `start_date`: when to begin forecasting (default: today)
-- `target_date`: future date to stop
-- Output: items forecast to complete by `target_date` at the chosen confidence
+#### MC When
+- Additional input: backlog_items — number of items to complete
+- Output: date by which those items will complete at the chosen confidence
 
-### MC When (backlog size)
-- `start_date`: when to begin forecasting (default: today)
-- `backlog_items`: positive integer
-- Output: date by which `backlog_items` complete at the chosen confidence
+## Example prompts
 
----
+### MC How-Many:
 
-## Example prompts (paste into Claude)
+> If I have the following throughput [5,3,1,3,4,6,5,3,1,3,2,5,0,0,2,0,1,0,2,4,3,4,0,1,0,0,2],
+> can you tell me how many stories I will complete if I start today and finish on 2025-12-16,
+> with a certainty of 85%?
 
-**How-Many:**
-> If I have the following throughput `[5,3,1,3,4,6,5,3,1,3,2,5,0,0,2,0,1,0,2,4,3,4,0,1,0,0,2]`, can you tell me how many stories I will complete if I start today, and finish on the `2025-12-16`, with a certainty of `85%`?
+### MC When:
 
 **When:**
 > We have `150` items to complete. Using throughput `[5,3,1,3,4,6,5,3,1,3,2,5,0,0,2,0,1,0,2,4,3,4,0,1,0,0,2]`, when will we finish at `85%` confidence if we start on `2025-11-03`?
