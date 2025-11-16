@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """
-Monte Carlo simulation for forecasting completion date based on stories remaining and historical throughput.
+Monte Carlo simulation for forecasting completion date based on stories 
+remaining and historical throughput.
 """
 
 import sys
 import random
 from datetime import datetime, timedelta
-from typing import List, Tuple
+from typing import List
 import json
 
 
@@ -34,12 +35,92 @@ def parse_date(date_str: str) -> datetime:
     raise ValueError(f"Unable to parse date: {date_str}")
 
 
+def check_process_variation(throughput: List[int]) -> dict:
+    """
+    Check process variation using XMR (Individual and Moving Range) control charts.
+
+    Determines if the throughput data exhibits stable variation suitable for forecasting.
+    Requires at least 20 data points for statistical reliability.
+
+    Args:
+        throughput: List of daily throughput values (stories completed per day)
+
+    Returns:
+        Dictionary with variation analysis:
+        - status: 'insufficient_data', 'stable', or 'outliers_detected'
+        - metrics: Control chart calculations (UNPL, LNPL, URL, averages)
+        - outliers: Lists of individual and range outliers (if any)
+    """
+
+    if len(throughput) < 20:
+        return {
+            'status': 'insufficient_data',
+            'data_points': len(throughput),
+            'message': 'Variation check requires 20+ data points for statistical reliability.'
+        }
+
+    # Calculate moving ranges (absolute differences between consecutive values)
+    moving_ranges = [abs(throughput[i] - throughput[i-1])
+                     for i in range(1, len(throughput))]
+
+    # Calculate averages
+    avg_throughput = sum(throughput) / len(throughput)
+    avg_moving_range = sum(moving_ranges) / len(moving_ranges)
+
+    # Calculate Natural Process Limits for individual values
+    # UNPL/LNPL represent 3-sigma limits (99.7% of stable data should fall within)
+    unpl = avg_throughput + (2.66 * avg_moving_range)
+    lnpl = avg_throughput - (2.66 * avg_moving_range)
+
+    # Calculate Upper Range Limit for moving ranges
+    # URL identifies when day-to-day variation is unstable
+    url = 3.268 * avg_moving_range
+
+    # Identify outliers
+    individual_outliers = [x for x in throughput if x > unpl or x < lnpl]
+    range_outliers = [mr for mr in moving_ranges if mr > url]
+
+    # Determine status
+    if individual_outliers or range_outliers:
+        status = 'outliers_detected'
+        message = (
+            f"Variation check detected {len(individual_outliers)} individual outlier(s) "
+            f"and {len(range_outliers)} range outlier(s). "
+            f"Forecast reliability may be affected by unstable process variation."
+        )
+    else:
+        status = 'stable'
+        message = (
+            "Process stability confirmed. All throughput values are within "
+            "natural process limits. Data is suitable for forecasting."
+        )
+
+    return {
+        'status': status,
+        'data_points': len(throughput),
+        'message': message,
+        'metrics': {
+            'avg_throughput': avg_throughput,
+            'avg_moving_range': avg_moving_range,
+            'unpl': unpl,
+            'lnpl': lnpl,
+            'url': url
+        },
+        'outliers': {
+            'individual_values': individual_outliers,
+            'individual_count': len(individual_outliers),
+            'moving_ranges': range_outliers,
+            'range_count': len(range_outliers)
+        }
+    }
+
+
 def monte_carlo_when(
     throughput: List[int],
     stories_remaining: int,
     confidence_level: float = 85.0,
     num_simulations: int = 10000,
-    start_date: str = None
+    start_date: str | None = None
 ) -> dict:
     """
     Run Monte Carlo simulation to forecast completion date.
@@ -71,7 +152,10 @@ def monte_carlo_when(
     
     if not 0 < confidence_level < 100:
         raise ValueError("Confidence level must be between 0 and 99 (100% confidence is not possible in probabilistic forecasting)")
-    
+
+    # Check process variation (XMR control charts)
+    variation_check = check_process_variation(throughput)
+
     # Parse start date
     if start_date:
         start = parse_date(start_date)
@@ -127,10 +211,10 @@ def monte_carlo_when(
         key: days_to_date(days).strftime('%Y-%m-%d')
         for key, days in days_percentiles.items()
     }
-    
+
     mean_days = sum(simulation_days) / len(simulation_days)
     mean_date = days_to_date(int(mean_days))
-    
+
     # Calculate throughput statistics
     throughput_mean = sum(throughput) / len(throughput)
     throughput_min = min(throughput)
@@ -156,7 +240,8 @@ def monte_carlo_when(
             'mean': throughput_mean,
             'min': throughput_min,
             'max': throughput_max
-        }
+        },
+        'variation_check': variation_check
     }
 
 
@@ -168,7 +253,7 @@ def format_results(results: dict) -> str:
     output.append("=" * 60)
     output.append("")
     
-    output.append(f"📊 FORECAST SUMMARY")
+    output.append("📊 FORECAST SUMMARY")
     output.append(f"   Stories Remaining: {results['stories_remaining']}")
     output.append(f"   Start Date: {results['start_date']}")
     output.append(f"   Simulations Run: {results['num_simulations']:,}")
@@ -202,7 +287,40 @@ def format_results(results: dict) -> str:
     output.append(f"   Average Daily: {results['throughput_stats']['mean']:.1f} stories/day")
     output.append(f"   Range: {results['throughput_stats']['min']} - {results['throughput_stats']['max']} stories/day")
     output.append("")
-    
+
+    # Process Variation Check
+    variation = results['variation_check']
+    if variation['status'] == 'insufficient_data':
+        output.append("ℹ️  PROCESS VARIATION CHECK")
+        output.append(f"   {variation['message']}")
+        output.append(f"   ({variation['data_points']} data points provided, 20+ required)")
+    elif variation['status'] == 'stable':
+        output.append("✓ PROCESS VARIATION CHECK")
+        output.append("   Process stability confirmed.")
+        output.append("   All throughput values are within natural process limits.")
+        output.append("   Data is suitable for forecasting.")
+    elif variation['status'] == 'outliers_detected':
+        output.append("⚠️  PROCESS VARIATION WARNING")
+        output.append(f"   {variation['message']}")
+        output.append("")
+        output.append("   Control Limits:")
+        metrics = variation['metrics']
+        output.append(f"   - Upper Natural Process Limit (UNPL): {metrics['unpl']:.1f} stories/day")
+        output.append(f"   - Lower Natural Process Limit (LNPL): {metrics['lnpl']:.1f} stories/day")
+        output.append(f"   - Upper Range Limit (URL): {metrics['url']:.1f}")
+        output.append("")
+        if variation['outliers']['individual_count'] > 0:
+            output.append(f"   Individual Outliers ({variation['outliers']['individual_count']}):")
+            outlier_values = variation['outliers']['individual_values']
+            output.append(f"   {outlier_values}")
+        if variation['outliers']['range_count'] > 0:
+            output.append(f"   Moving Range Outliers ({variation['outliers']['range_count']}):")
+            range_values = variation['outliers']['moving_ranges']
+            output.append(f"   {range_values}")
+        output.append("")
+        output.append("   Recommendation: Investigate outliers before relying on this forecast.")
+    output.append("")
+
     output.append("=" * 60)
     
     return "\n".join(output)
@@ -254,7 +372,7 @@ def main():
         print("\nJSON Output:")
         print(json.dumps(results, indent=2))
         
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"Error: {e}", file=sys.stderr)
         sys.exit(1)
 

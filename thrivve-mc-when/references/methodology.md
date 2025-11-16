@@ -75,6 +75,121 @@ Common confidence levels:
 3. **Random sampling**: Any historical value can occur on any future day with equal probability
 4. **Constant scope**: The number of stories remaining doesn't change during the forecast period
 
+## Process Variation Checking (XMR Control Charts)
+
+### Purpose
+
+Before generating forecasts, the skill validates whether your historical throughput data exhibits **stable, predictable variation** suitable for Monte Carlo simulation. This is done using **XMR (Individual and Moving Range) control charts** from Statistical Process Control (SPC).
+
+### Why It Matters
+
+Monte Carlo simulation's core assumption is that **past data represents future behavior**. If your throughput contains outliers or shows unstable variation, this assumption breaks down:
+
+- **Outliers** may represent one-time events (holiday, major incident, team reorganization) that won't recur
+- **Unstable variation** signals a process in flux, making historical patterns unreliable for forecasting
+- **Special cause variation** (outliers) must be distinguished from **common cause variation** (normal fluctuation)
+
+As ProKanban research states: "If there are values outside of LNPL or UNPL lines, the system is objectively unstable therefore it shouldn't be used for forecasting."
+
+### What Gets Checked (When You Have 20+ Data Points)
+
+The XMR control chart calculates three key limits:
+
+#### 1. UNPL (Upper Natural Process Limit)
+```
+UNPL = Average(Throughput) + (2.66 × Average(Moving Range))
+```
+Identifies **unusually high** throughput days (potential outliers above normal variation).
+
+#### 2. LNPL (Lower Natural Process Limit)
+```
+LNPL = Average(Throughput) - (2.66 × Average(Moving Range))
+```
+Identifies **unusually low** throughput days (potential outliers below normal variation).
+
+#### 3. URL (Upper Range Limit)
+```
+URL = 3.268 × Average(Moving Range)
+```
+Identifies **unstable day-to-day variation** (moving ranges that are abnormally large).
+
+**Moving Range**: The absolute difference between consecutive throughput values
+Example: For throughput [3, 7, 5], moving ranges are [|7-3|, |5-7|] = [4, 2]
+
+### Statistical Constants Explained
+
+- **2.66**: Represents 3 standard deviations for individual values (99.7% of stable data should fall within these limits)
+- **3.268**: The D₄ constant from control chart theory for moving range upper limits
+
+These represent **3-sigma limits** - approximately 99.7% of data from a stable process should fall within UNPL/LNPL bounds.
+
+### Interpreting the Check Results
+
+#### ✓ Process Stable (Green Light)
+- All throughput values within UNPL/LNPL
+- All moving ranges within URL
+- **Meaning**: Your process exhibits only common cause variation (normal, predictable fluctuation)
+- **Action**: Proceed with confidence - forecasts will be statistically reliable
+
+#### ⚠️ Outliers Detected (Caution Required)
+- One or more values exceed UNPL/LNPL OR moving ranges exceed URL
+- **Meaning**: Your process exhibits special cause variation (unusual events or instability)
+- **Impact on Forecast**:
+  - May inflate variability, making forecasts unnecessarily pessimistic
+  - May skew averages, distorting expected completion times
+  - Violates Monte Carlo's assumption of representative sampling
+
+**What to Do**:
+1. **Identify** which dates/values are outliers
+2. **Investigate** the root cause:
+   - Holiday with reduced capacity?
+   - Major incident disrupting work?
+   - Team size changed?
+   - Process improvement implemented?
+3. **Decide** whether to include or exclude:
+   - **Exclude** if non-recurring (one-time event)
+   - **Keep** if represents new normal (permanent change)
+4. **Re-run** forecast with adjusted data
+
+#### ℹ️ Insufficient Data (< 20 Points)
+- Simulation runs, but variation check cannot be performed
+- **Reason**: Need ~20 data points for control limits to be statistically reliable
+- **Action**: Gather more data for validation, or proceed with awareness that stability is unverified
+
+### Example
+
+**Throughput**: [3, 5, 4, 2, 6, 4, 5, 3, 7, 4, 5, 6, 3, 4, 5, 2, 18, 4, 3, 5]
+**Moving Ranges**: [2, 1, 2, 4, 2, 1, 2, 4, 3, 1, 1, 3, 1, 1, 3, 16, 14, 1, 2]
+
+**Calculations**:
+- Average Throughput: 4.85
+- Average Moving Range: 3.63
+- UNPL: 4.85 + (2.66 × 3.63) = **14.51**
+- LNPL: 4.85 - (2.66 × 3.63) = **-4.81** (treat as 0 since throughput can't be negative)
+- URL: 3.268 × 3.63 = **11.86**
+
+**Result**: Value **18** exceeds UNPL (14.51) → **Outlier detected**
+Moving ranges **16** and **14** exceed URL (11.86) → **Unstable variation detected**
+
+**Recommendation**: Investigate day with 18 completions. Was this a sprint demo day with bulk story closures? One-time event? If so, consider excluding it and re-running the forecast.
+
+### Why 20 Data Points?
+
+From SPC research: "To ensure reliable estimates of sigma and the process average, one needs about 20 data points."
+
+- **< 20 points**: Control limits change significantly with each new data point (unstable estimates)
+- **20-30 points**: Control limits begin to stabilize (reliable estimates)
+- **> 30 points**: Diminishing returns (limits don't change much)
+
+The minimum of 10 points allows forecasting to run, but **variation checking requires 20+** for statistical validity.
+
+### Integration with Monte Carlo Forecasting
+
+1. **Automatic Check**: Runs every time before simulation (when 20+ points provided)
+2. **Non-Blocking**: Forecast always generates (you decide whether to trust it)
+3. **Transparent**: Shows exactly which values are outliers and the calculated limits
+4. **Actionable**: Provides guidance on investigating and addressing outliers
+
 ## Limitations
 
 - Does not account for trends (improving/declining performance)
