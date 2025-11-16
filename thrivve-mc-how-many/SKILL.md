@@ -62,7 +62,65 @@ The script provides:
 - **Percentile forecasts**: P25, P50, P70, P85, P95, P99
 - **Statistical summary**: Mean, min, max across all simulations
 - **Throughput analysis**: Statistics about historical data
+- **Process variation check**: Assessment of data stability for forecasting
 - **JSON output**: Structured data for further processing
+
+## Process Variation Checking
+
+The skill automatically validates whether your throughput data exhibits stable, predictable variation suitable for forecasting using **XMR (Individual and Moving Range) control charts** from Statistical Process Control.
+
+### When It Runs
+
+- **20+ data points**: Full variation check runs, calculating control limits (UNPL, LNPL, URL)
+- **10-19 data points**: Simulation runs, but shows info message that variation cannot be verified
+- **< 10 data points**: Simulation cannot run (insufficient data)
+
+### What It Checks
+
+1. **Individual Values (UNPL/LNPL)**: Identifies unusually high or low throughput days
+2. **Moving Ranges (URL)**: Detects unstable day-to-day variation
+3. **Process Stability**: Determines if historical data represents predictable future behavior
+
+### Understanding the Messages
+
+**✓ Process Stability Confirmed** (Green Light)
+- All throughput values within natural process limits
+- Data is suitable for forecasting
+- Past patterns reliably predict future performance
+
+**ℹ️ Variation Check Skipped** (Informational)
+- Less than 20 data points provided
+- Simulation runs but process stability cannot be verified
+- Consider gathering more data for validation
+
+**⚠️ Variation Warning** (Caution Required)
+- Outliers detected exceeding control limits
+- Displays specific outlier values and calculated limits
+- Forecast reliability may be compromised
+- **Recommendation**: Investigate outliers before trusting forecast
+  - Are they one-time events (holiday, outage, reorganization)?
+  - Do they represent a changed process (new workflow, team size)?
+  - Should they be excluded from forecasting data?
+
+### Why It Matters
+
+Monte Carlo simulation assumes your historical data represents future behavior. **Outliers violate this assumption**:
+- May inflate variability, making forecasts unnecessarily pessimistic
+- May skew averages, distorting expected completion counts
+- Signal process instability, making predictions unreliable
+
+As documented in ProKanban research: "If there are values outside of LNPL or UNPL lines, the system is objectively unstable therefore it shouldn't be used for forecasting."
+
+### What to Do About Outliers
+
+1. **Investigate**: Understand why the outlier occurred
+2. **Classify**: One-time event or permanent process change?
+3. **Decide**:
+   - Exclude if non-recurring (e.g., holiday shutdown)
+   - Keep if representative of new normal (e.g., increased team capacity)
+4. **Re-run**: Update forecast with adjusted data
+
+For detailed statistical explanation, see `references/methodology.md`.
 
 ## Workflow
 

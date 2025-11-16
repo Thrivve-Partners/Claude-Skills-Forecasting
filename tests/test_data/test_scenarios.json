@@ -1,0 +1,72 @@
+{
+  "scenarios": {
+    "insufficient_data": {
+      "description": "Less than 20 data points - variation check should be skipped",
+      "throughput": "3,5,4,2,6,4,5,3,7,4,5,6,3,4,5",
+      "expected_variation_status": "insufficient_data",
+      "expected_data_points": 15
+    },
+    "stable_process": {
+      "description": "20+ data points with stable variation - no outliers",
+      "throughput": "3,5,4,2,6,4,5,3,7,4,5,6,3,4,5,4,3,5,4,6",
+      "expected_variation_status": "stable",
+      "expected_data_points": 20,
+      "expected_outliers": {
+        "individual_count": 0,
+        "range_count": 0
+      }
+    },
+    "process_with_outliers": {
+      "description": "20+ data points with outliers - should detect variation issues",
+      "throughput": "3,5,4,2,6,4,5,3,18,4,5,6,3,4,5,2,22,4,3,5",
+      "expected_variation_status": "outliers_detected",
+      "expected_data_points": 20,
+      "expected_outliers": {
+        "individual_count": 1,
+        "range_count": 2,
+        "individual_values_contains": [22],
+        "moving_ranges_contains": [20, 18]
+      }
+    },
+    "edge_case_exactly_20": {
+      "description": "Exactly 20 data points - boundary test",
+      "throughput": "4,4,5,5,4,4,5,5,4,4,5,5,4,4,5,5,4,4,5,5",
+      "expected_variation_status": "stable",
+      "expected_data_points": 20
+    },
+    "high_variability": {
+      "description": "High but stable variability - no outliers",
+      "throughput": "2,8,3,7,2,9,4,6,2,8,3,7,2,9,4,6,2,8,3,7",
+      "expected_variation_status": "stable",
+      "expected_data_points": 20
+    }
+  },
+  "when_tests": {
+    "basic_forecast": {
+      "stories_remaining": 50,
+      "confidence_level": 85,
+      "num_simulations": 1000,
+      "start_date": "2025-11-16"
+    },
+    "large_backlog": {
+      "stories_remaining": 200,
+      "confidence_level": 70,
+      "num_simulations": 1000,
+      "start_date": "2025-11-16"
+    }
+  },
+  "how_many_tests": {
+    "basic_forecast": {
+      "target_date": "2025-12-31",
+      "confidence_level": 85,
+      "num_simulations": 1000,
+      "start_date": "2025-11-16"
+    },
+    "short_timeframe": {
+      "target_date": "2025-11-30",
+      "confidence_level": 70,
+      "num_simulations": 1000,
+      "start_date": "2025-11-16"
+    }
+  }
+}
